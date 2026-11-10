@@ -1,8 +1,10 @@
 # Analytics plan
 
-**Status:** events are instrumented and verified **in the page** (`window.dataLayer`, Playwright). They are
-**not verified as received by GA4**: no GA4 property or GTM container is connected to this demo. Setting
-`PUBLIC_GTM_ID` loads GTM, and from there GA4 would pick the events up. That last hop is unverified.
+**Status:** the app pushes typed events to `window.dataLayer`, verified in the page with Playwright. Nothing
+forwards them automatically: the GTM container (loaded via `PUBLIC_GTM_ID`) needs Custom Event triggers and
+GA4 Event tags to send them to GA4, plus Data Layer Variables to map their parameters. Marking `sign_up` as a
+key event and registering custom dimensions in GA4 are for conversion reporting, not for ingestion. No GTM
+container or GA4 property is connected to this demo, so GA4 delivery and reporting are **not verified**.
 
 ## Events
 
@@ -79,7 +81,7 @@ aren't duplicated. Experiment variant would be added here once the A/B test runs
 
 ## Architecture
 
-`track()` → `window.dataLayer` → GTM (only if `PUBLIC_GTM_ID`) → GA4 tag.
+`track()` → `window.dataLayer` → GTM (only if `PUBLIC_GTM_ID`) → GA4 Event tag configured in GTM.
 
 - GTM and GA4 because that's what FX Replay's marketing stack uses (per the job description), and it lets
   marketing change tags without deploys.
