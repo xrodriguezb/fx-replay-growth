@@ -4,6 +4,7 @@ import { StoreUnavailableError } from './users-store';
 export type ErrorCode =
   | 'VALIDATION'
   | 'INVALID_JSON'
+  | 'UNREADABLE_BODY'
   | 'PAYLOAD_TOO_LARGE'
   | 'UNAUTHORIZED'
   | 'NOT_FOUND'
@@ -23,9 +24,16 @@ export function apiError(status: number, code: ErrorCode, message: string, field
   return json({ error: { code, message, ...(fields && { fields }) } }, status);
 }
 
-// returns the parsed body, or a ready-to-send error response
+// Returns the parsed body, or a ready-to-send error response. The size check runs after the body is read
+// (no streaming cap), so it guards parsing, not memory; Vercel's own request limit bounds the read.
 export async function readJson(request: Request): Promise<{ body: unknown } | { response: Response }> {
-  const text = await request.text();
+  let text: string;
+  try {
+    text = await request.text();
+  } catch {
+    // e.g. the client dropped the connection mid-upload; answer inside the envelope instead of a bare 500
+    return { response: apiError(400, 'UNREADABLE_BODY', 'Request body could not be read') };
+  }
   if (new TextEncoder().encode(text).length > MAX_BODY_BYTES) {
     return { response: apiError(413, 'PAYLOAD_TOO_LARGE', 'Request body is too large') };
   }
