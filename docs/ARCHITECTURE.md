@@ -139,8 +139,20 @@ like `name: "42"` would come back as the number 42. That was caught in review an
   - `/api/users*` are Node 24 functions.
 - **Upstash Redis** is provisioned through the Vercel Marketplace. It injects `KV_REST_API_URL` and
   `KV_REST_API_TOKEN`, which the store reads (it also accepts `UPSTASH_REDIS_REST_*`).
-- **Known gap:** the Upstash database is connected to production, preview and development, so preview
-  deploys write to the production store. A real setup would give previews their own database.
+- **Environment model:**
+  - **Production:** the only environment with Redis credentials.
+  - **Preview and development:** no Redis credentials in either scope. What happens without them depends on
+    the runtime mode, not the scope name:
+    - **Production-mode deployments** (`NODE_ENV=production`, which includes preview deploys) return 503
+      `STORE_UNAVAILABLE`, so preview traffic can't write to production data.
+    - **Local development** (`npm run dev` or `vercel dev`, `NODE_ENV=development`) uses in-memory storage,
+      which is lost on restart.
+  - **How this was set up:** at provisioning, Upstash was connected to all three Vercel environments. On
+    2026-11-09 the KV_* and REDIS_URL vars were removed from preview and development (Judgment Log row 30),
+    and a preview deploy then returned 503 on POST.
+  - **Current state:** re-checked read-only on 2026-11-10 with `vercel env ls`, which lists the KV_* and
+    REDIS_URL vars on Production only.
+  - **A real team setup** would give previews their own disposable database rather than none.
 - **Environment variables:**
   - `ADMIN_TOKEN`: Secret, production and preview.
   - `PUBLIC_GTM_ID`, `SITE_URL`, `PUBLIC_INDEXABLE`: optional, documented in `.env.example`.
