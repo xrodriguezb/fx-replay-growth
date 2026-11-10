@@ -74,13 +74,25 @@ Rules that make the loop trustworthy:
   (screenshots at 1440 and 390 px, walking the flow at 1280 and 390 px) was done with the Playwright CLI and
   test runner instead. A fresh session loads it from `.mcp.json` (confirmed in the same check).
 
+## Who runs what
+
+- **Primary Claude Code session:** implements, runs every command (`check.sh`, Vitest, the Playwright test
+  runner, Playwright CLI screenshots, Lighthouse, deploys when approved) and is the only agent that touches
+  a browser.
+- **`growth-reviewer`:** reviews code and the command output it's handed. Its tools are `Read`, `Grep` and
+  `Glob`, so it can't run commands, open a browser or edit anything.
+- **Playwright test runner:** the e2e suite (`npm run e2e`), run by `check.sh` and by CI.
+- **Playwright MCP:** configured in `.mcp.json` and confirmed loadable in a fresh session (Judgment Log
+  row 32). It wasn't used in the build session; browser checks there went through the test runner and the
+  Playwright CLI.
+
 ## MCP: what's connected, and what production would add
 
 | MCP | Status | Why | How the agents would use it |
 |---|---|---|---|
-| **Playwright** | Configured | Visual and behavioural checks at real viewports, which a code-only reviewer can't do | The reviewer or ship-check opens the page at 390/768/1280, fills the form, reads `window.dataLayer` |
+| **Playwright** | Configured | Visual and behavioural checks at real viewports, which a code-only reviewer can't do | The primary Claude Code session opens the page at 390/1280, fills the form and reads `window.dataLayer`. The restricted reviewer can't: it has no browser tools |
 | **GA4 (Google Analytics data)** | Proposed | Experiment readouts and funnel monitoring need real data | An analysis agent pulls the funnel by variant, runs the SRM check and the decision rules from EXPERIMENT.md, and drafts the readout for a human to sign |
-| **Vercel** | Proposed | Deployments, logs, env | The reviewer checks preview deploys and function logs (5xx, `STORE_UNAVAILABLE`, honeypot rate) without someone copying them over |
+| **Vercel** | Proposed | Deployments, logs, env | An agent given read-only Vercel MCP access checks preview deploys and function logs (5xx, `STORE_UNAVAILABLE`, honeypot rate) without someone copying them over |
 | **Convert** (via its API) | Proposed | Experiment config lives there | Read-only access, so an agent can verify a live experiment matches EXPERIMENT.md (split, goals, targeting) before launch |
 
 Access would be read-only by default. Anything that changes production config (starting an experiment,
