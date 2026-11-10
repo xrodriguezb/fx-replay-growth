@@ -172,7 +172,8 @@ How I'd run this for real, with what exists today marked.
       request and MISS right after a deploy.
     - Assets: `public, max-age=31536000, immutable`.
 - **Observability:**
-  - **Today:** Vercel function logs (no payloads, no PII). Store failures log `STORE_UNAVAILABLE` and
+  - **Today:** Vercel function logs. Request payloads are never logged, so submitted emails and names don't
+    reach them. Store failures log `STORE_UNAVAILABLE` and
     honeypot hits log `honeypot triggered`, so both can be counted.
   - **Next:** alerts on the POST 5xx rate and on `STORE_UNAVAILABLE`, Speed Insights for field CWV, and the
     daily `sign_up` against store reconciliation from ANALYTICS.md.
@@ -180,7 +181,10 @@ How I'd run this for real, with what exists today marked.
   - Server-side validation of every input, 4 KB body limit.
   - Admin endpoints fail closed, with a constant-time token check.
   - Secrets live only in Vercel env vars; none reach client bundles (checked against the deployed assets).
-  - No PII in logs or analytics; the URL is scrubbed before GTM.
+  - Logs never include request payloads. Analytics events never carry form values, UTMs are kept only if
+    they're campaign slugs, and known contact parameters plus email-like values are scrubbed from the URL
+    before GTM. That's a format filter, not full PII detection: see the limits in
+    [ANALYTICS.md](ANALYTICS.md#data-quality).
   - **Next:** rate limiting on POST (Vercel Firewall rule or `@upstash/ratelimit`), a CSP, and real auth
     replacing the admin token.
 - **Reliability:**

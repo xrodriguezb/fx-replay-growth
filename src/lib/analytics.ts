@@ -25,11 +25,11 @@ declare global {
 
 const UTM_KEYS = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term'] as const;
 const LOOKS_LIKE_EMAIL = /[^\s@]+@[^\s@]+/;
-// %40 covers a double-encoded @ that's still encoded after URLSearchParams decodes once
-const HAS_AT = /@|%40/i;
+// Campaign values are slugs by convention (lowercase, digits, . _ -). Anything else (spaces, @, a typed-in
+// name) is dropped instead of forwarded. This filters by format; it can't recognise a name written as a slug.
+const CAMPAIGN_SLUG = /^[a-z0-9._-]{1,100}$/i;
 
-// Attribution read once per page load. A UTM that carries an email (it happens with sloppy email campaigns)
-// is dropped rather than forwarded.
+// Attribution read once per page load. The same rule runs on the URL before GTM loads (Base.astro).
 let context: Record<string, string> | undefined;
 function getContext() {
   if (context) return context;
@@ -37,7 +37,7 @@ function getContext() {
   context = {};
   for (const key of UTM_KEYS) {
     const value = params.get(key);
-    if (value && !HAS_AT.test(value)) context[key] = value.slice(0, 100);
+    if (value && CAMPAIGN_SLUG.test(value)) context[key] = value;
   }
   return context;
 }
