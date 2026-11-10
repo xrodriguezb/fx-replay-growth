@@ -225,8 +225,9 @@ How I'd run this for real, with what exists today marked.
 3. **Rate limiting and bot protection** (Vercel Firewall or Turnstile), replacing the honeypot as the main
    defence.
 4. **Consent Mode v2**, and `sign_up` moved to a server-side GA4 Measurement Protocol event as the single
-   conversion source, so ad blockers and consent don't hide conversions. The client event is retired in the
-   same release, since GA4 doesn't deduplicate the two.
+   conversion source, sent only with analytics consent and the browser's `client_id`, so script failures stop
+   dropping conversions. The client event is retired in the same release, since GA4 doesn't deduplicate the
+   two.
 5. **Experiment assignment at the edge** with the experimentation platform's SDK, and the variant in every
    event.
 6. **Preact compat** (or a smaller island) to bring the JS budget down, with a CI budget check.
