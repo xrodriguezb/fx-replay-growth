@@ -58,15 +58,18 @@ The store has three functions behind one interface, because it really does have 
 
 | Method | Path | Auth | Success | Errors |
 |---|---|---|---|---|
-| POST | `/api/users` | public | 201 `{ user }` | 400 `VALIDATION` / `INVALID_JSON`, 409 `EMAIL_TAKEN`, 413, 503 `STORE_UNAVAILABLE` |
-| PATCH | `/api/users/:id` | admin bearer | 200 `{ user }` | 400 `VALIDATION` / `INVALID_JSON`, 401, 404 `NOT_FOUND`, 413, 503 |
+| POST | `/api/users` | public | 201 `{ user }` | 400 `VALIDATION` / `INVALID_JSON` / `UNREADABLE_BODY`, 409 `EMAIL_TAKEN`, 413, 503 `STORE_UNAVAILABLE` |
+| PATCH | `/api/users/:id` | admin bearer | 200 `{ user }` | 400 `VALIDATION` / `INVALID_JSON` / `UNREADABLE_BODY`, 401, 404 `NOT_FOUND`, 413, 503 |
 | GET | `/api/users?cursor=&limit=` | admin bearer | 200 `{ users, nextCursor }` | 400, 401, 503 |
 
 Every error is `{ error: { code, message, fields? } }`. `fields` maps a field name to the message the form shows.
 
 - One zod schema (`src/lib/user-schema.ts`) validates both the form and the API.
 - Email is trimmed and lowercased before anything else. It's the identity key, so PATCH can only change `name`.
-- Bodies over 4 KB get a 413 before parsing.
+- Bodies over 4 KB get a 413 before parsing. The check runs after the body is read (there's no streaming
+  cap), so it protects parsing, not memory; Vercel itself rejects request bodies over 4.5 MB
+  (`413 FUNCTION_PAYLOAD_TOO_LARGE`). A body that fails to read (e.g. a dropped upload) returns 400
+  `UNREADABLE_BODY`.
 - Responses carry `cache-control: no-store`.
 
 ### Security model (intentionally limited)
@@ -200,8 +203,12 @@ How I'd run this for real, with what exists today marked.
     they're campaign slugs, and known contact parameters plus email-like values are scrubbed from the URL
     before GTM. That's a format filter, not full PII detection: see the limits in
     [ANALYTICS.md](ANALYTICS.md#data-quality).
+  - **Known limits of the public POST:** a 409 for a registered email lets anyone check whether an address
+    has signed up (email enumeration). The honeypot can misfire if autofill or an extension fills the
+    hidden field: that person sees success but nothing is stored (only the `honeypot triggered` log line
+    shows it).
   - **Next:** rate limiting on POST (Vercel Firewall rule or `@upstash/ratelimit`), a CSP, and real auth
-    replacing the admin token.
+    replacing the admin token, with a signup response that doesn't reveal whether the email exists.
 - **Reliability:**
   - The page has no runtime dependency; it's static.
   - The API depends on Upstash. Its failures return a retryable 503, and the form keeps what was typed and
