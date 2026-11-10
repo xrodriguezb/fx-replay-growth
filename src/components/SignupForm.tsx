@@ -100,7 +100,7 @@ export default function SignupForm() {
       // This is the only place sign_up fires, and the submitting guard above stops a second request.
       if (res.status === 201) {
         const id = body?.user?.id;
-        if (!trapped) track('sign_up', typeof id === 'string' ? { method: 'email', user_id: id } : { method: 'email' });
+        if (!trapped) track('sign_up', typeof id === 'string' ? { method: 'email', signup_id: id } : { method: 'email' });
         return setState({ status: 'success', user: parsed.data });
       }
       if ((res.status === 400 || res.status === 409) && body?.error?.fields) {
