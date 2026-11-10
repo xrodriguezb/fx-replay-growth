@@ -4,15 +4,33 @@ import { createMemoryStore, createRedisStore, type UsersStore } from '../src/lib
 
 // Same contract against both stores. The Redis half needs a real Redis behind an Upstash-compatible
 // REST endpoint (see README, "Testing against Redis"); without REDIS_TEST_URL it's skipped, not faked.
+//
+// These tests delete the store's keys between cases, so they refuse any non-local endpoint unless you
+// state the database is disposable (REDIS_TEST_DISPOSABLE=yes). Never point them at production.
+// The check only sees the REST endpoint's host: a local proxy that forwards to a remote Redis would pass.
+
 const redisUrl = process.env.REDIS_TEST_URL;
+if (redisUrl) {
+  const host = new URL(redisUrl).hostname;
+  const local = ['localhost', '127.0.0.1', '[::1]', '::1'].includes(host);
+  if (!local && process.env.REDIS_TEST_DISPOSABLE !== 'yes') {
+    throw new Error(`Refusing to run destructive Redis tests against ${host}. Use a local Redis, or set REDIS_TEST_DISPOSABLE=yes for a throwaway database.`);
+  }
+}
 const redis = redisUrl ? new Redis({ url: redisUrl, token: process.env.REDIS_TEST_TOKEN ?? 'local' }) : null;
+
+// only the keys this store owns, so a shared local Redis keeps everything else
+async function resetStoreKeys() {
+  const keys = [...(await redis!.keys('user:*')), ...(await redis!.keys('email:*')), 'users', 'users:seq'];
+  await redis!.del(...keys);
+}
 
 const stores: [string, () => Promise<UsersStore>, boolean][] = [
   ['memory', async () => createMemoryStore(), true],
   [
     'redis',
     async () => {
-      await redis!.flushdb();
+      await resetStoreKeys();
       return createRedisStore(redis!);
     },
     redis !== null,
@@ -78,7 +96,7 @@ describe.each(stores)('%s store', (_name, make, enabled) => {
 
 describe.runIf(redis !== null)('redis create script', () => {
   it('writes nothing when a key has the wrong type', async () => {
-    await redis!.flushdb();
+    await resetStoreKeys();
     await redis!.set('users', 'not-a-zset');
     const store = createRedisStore(redis!);
 
