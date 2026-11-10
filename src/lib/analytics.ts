@@ -11,8 +11,9 @@ export type EventMap = {
   signup_submitted: Record<string, never>;
   // field names only, never what was typed
   signup_failed: { reason: FailReason; fields?: string };
-  // GA4's recommended event name; user_id is our opaque uuid, not personal data
-  sign_up: { method: 'email'; user_id?: string };
+  // GA4's recommended event name. signup_id is the signup record's opaque uuid, not personal data, and is
+  // deliberately not called user_id: GA4 reserves that key for authenticated User-ID
+  sign_up: { method: 'email'; signup_id?: string };
 };
 
 type DataLayerEvent = { event: keyof EventMap } & Record<string, unknown>;

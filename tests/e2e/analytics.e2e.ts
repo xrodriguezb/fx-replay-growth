@@ -32,7 +32,8 @@ test('records the funnel in order, once, with attribution and no PII', async ({ 
   const all = await events(page);
   const signUp = all.find((e) => e.event === 'sign_up')!;
   expect(signUp).toMatchObject({ method: 'email', utm_source: 'newsletter', utm_campaign: 'launch' });
-  expect(signUp.user_id).toMatch(/^[0-9a-f-]{36}$/);
+  expect(signUp.signup_id).toMatch(/^[0-9a-f-]{36}$/);
+  expect(signUp).not.toHaveProperty('user_id'); // GA4's reserved User-ID key stays unused
   // the UTM carrying an email is dropped, and nothing anywhere looks like an email
   expect(signUp).not.toHaveProperty('utm_medium');
   expect(signUp).not.toHaveProperty('utm_term');
