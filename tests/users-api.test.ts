@@ -56,6 +56,13 @@ describe('POST /api/users', () => {
     expect(Object.keys(error.fields).sort()).toEqual(['email', 'name']);
   });
 
+  it('uses the same field messages when fields are missing or not strings', async () => {
+    for (const body of [{}, { email: 42, name: 7 }]) {
+      const { error } = await (await post(body)).json();
+      expect(error.fields).toEqual({ email: 'Enter a valid email address', name: 'Enter your name' });
+    }
+  });
+
   it('rejects malformed and oversized bodies', async () => {
     expect((await post('{nope')).status).toBe(400);
     expect((await post({ email: 'a@b.co', name: 'x'.repeat(5000) })).status).toBe(413);

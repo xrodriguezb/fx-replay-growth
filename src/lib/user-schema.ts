@@ -1,10 +1,15 @@
 import { z } from 'astro/zod';
 
-// one schema for the form and the API, so they can't drift apart
+// one schema for the form and the API, so they can't drift apart.
+// The z.string({ error }) messages cover a missing or non-string field (API callers), not just bad values.
 export const createUserSchema = z.object({
-  email: z.string().trim().toLowerCase().pipe(z.email({ error: 'Enter a valid email address' }).max(254)),
+  email: z
+    .string({ error: 'Enter a valid email address' })
+    .trim()
+    .toLowerCase()
+    .pipe(z.email({ error: 'Enter a valid email address' }).max(254)),
   name: z
-    .string()
+    .string({ error: 'Enter your name' })
     .trim()
     .min(1, { error: 'Enter your name' })
     .max(100, { error: 'Name is too long' }),
