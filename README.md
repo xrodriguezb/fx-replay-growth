@@ -91,11 +91,12 @@ See [.env.example](.env.example). In production:
 ## Scope notes
 
 - **Done:** landing, one-step signup with full states, Users API with durable storage, typed analytics,
-  production deploy, e2e against production.
+  production deploy, e2e against production, and CI/CD: GitHub Actions on every PR and push to `main`,
+  Vercel connected to the repo (a Preview per pushed branch, a Production deploy on every push to `main`).
+  CI doesn't block merges or deploys: `main` has no branch protection.
 - **Proposed only:** the A/B test, as the brief asks.
 - **Not done, with reasons in the docs:**
   - Real auth.
   - GA4 delivery (no container connected).
   - Rate limiting.
-  - Running CI (no remote repo connected yet).
   - A manual screen-reader pass.

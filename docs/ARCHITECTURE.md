@@ -163,13 +163,16 @@ like `name: "42"` would come back as the number 42. That was caught in review an
 How I'd run this for real, with what exists today marked.
 
 - **Hosting:** Vercel. The page is static and the API is three small functions. There's no server to manage.
-- **Deployment:**
-  - **Target:** Git-based. Every PR gets a preview URL; merging to `main` promotes to production. Rollback
-    is Vercel's instant rollback to the previous build.
-  - **Today:** deployed with `vercel deploy --prod` from the CLI. The GitHub repo isn't connected yet.
-- **CI/CD:** `.github/workflows/ci.yml` runs the same checks as `/ship-check`: typecheck, unit tests, build
-  and e2e. Vercel's checks gate the merge. It hasn't run yet, because no remote exists.
-  - **Next:** a JS budget check, and the e2e suite against each preview URL (`E2E_BASE_URL`).
+- **Deployment:** Vercel is connected to `xrodriguezb/fx-replay-growth`. Every pushed branch gets a Preview
+  deployment (behind Vercel Authentication, no Redis, so its signup answers 503), and every push to `main`
+  deploys to Production automatically. Rollback is Vercel's instant rollback to a previous deployment. The
+  first deploys were made from the CLI, before the repo was connected.
+- **CI/CD:** `.github/workflows/ci.yml` runs on every pull request and every push to `main`, with the same
+  checks as `/ship-check`: typecheck, unit tests, build and e2e. The results show on the PR next to
+  Vercel's Preview status, but **nothing enforces them**: `main` has no branch protection, so a failing
+  check doesn't block a merge, and a merge deploys to Production either way.
+  - **Next:** branch protection requiring the CI check, a JS budget check, and the e2e suite against each
+    preview URL (`E2E_BASE_URL`).
 - **DNS:** a subdomain like `try.fxreplay.com` (CNAME to Vercel) keeps the experiment isolated from the main
   site. If it has to live under `fxreplay.com/try`, a rewrite from the main site's edge to this project
   does it without moving DNS.
