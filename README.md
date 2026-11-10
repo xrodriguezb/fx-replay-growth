@@ -70,6 +70,10 @@ docker run -d --rm --name fxr-srh --network fxr-test -p 8079:80 \
 REDIS_TEST_URL=http://localhost:8079 REDIS_TEST_TOKEN=local npm test
 ```
 
+These tests delete the store's keys between cases. They refuse any non-localhost endpoint unless
+`REDIS_TEST_DISPOSABLE=yes` is set. The check only sees the REST endpoint's host, so a local proxy in front
+of a remote Redis would get past it: point the proxy at a throwaway Redis only.
+
 ### Running e2e against a deployment
 
 ```sh
