@@ -2,12 +2,17 @@
 
 **Status:** the app pushes typed events to `window.dataLayer`, verified in the page with Playwright. Nothing
 forwards them automatically. In GTM (loaded via `PUBLIC_GTM_ID`) that takes a Google tag with the GA4
-Measurement ID, which sends `page_view` (carrying `page_location`) and is where User-ID is set explicitly from
-`user_id`; plus Custom Event triggers and GA4 Event tags for the six events, with Data Layer Variables for
-their parameters. In GA4, marking `sign_up` as a key event makes it a conversion, and registering `reason`,
+Measurement ID, which sends `page_view` (carrying `page_location`); plus Custom Event triggers and GA4 Event
+tags for the six events, with Data Layer Variables for their parameters. In GA4, marking `sign_up` as a key event makes it a conversion, and registering `reason`,
 `fields`, `cta_location` and `method` as custom dimensions makes them reportable. The UTMs aren't registered
 as custom dimensions: GA4's standard campaign attribution reads them from `page_location`. No GTM container
 or GA4 property is connected to this demo, so delivery and reporting are **not verified**.
+
+**User-ID stays unset in this demo.** Google reserves it for signed-in users, and the `user_id` here is a
+signup record id that only exists after `sign_up`. It's kept in the data layer for reconciliation with the
+store, not mapped as a GA4 event parameter or custom dimension. With real FX Replay accounts, the account id
+would go in the Google tag's `user_id` setting on sign-in, pushed to the data layer before the GTM snippet
+([Google's User-ID guide](https://developers.google.com/analytics/devguides/collection/ga4/user-id)).
 
 ## Events
 
