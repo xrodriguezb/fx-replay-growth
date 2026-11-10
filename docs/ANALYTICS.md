@@ -1,10 +1,13 @@
 # Analytics plan
 
 **Status:** the app pushes typed events to `window.dataLayer`, verified in the page with Playwright. Nothing
-forwards them automatically: the GTM container (loaded via `PUBLIC_GTM_ID`) needs Custom Event triggers and
-GA4 Event tags to send them to GA4, plus Data Layer Variables to map their parameters. Marking `sign_up` as a
-key event and registering custom dimensions in GA4 are for conversion reporting, not for ingestion. No GTM
-container or GA4 property is connected to this demo, so GA4 delivery and reporting are **not verified**.
+forwards them automatically. In GTM (loaded via `PUBLIC_GTM_ID`) that takes a Google tag with the GA4
+Measurement ID, which sends `page_view` (carrying `page_location`) and is where User-ID is set explicitly from
+`user_id`; plus Custom Event triggers and GA4 Event tags for the six events, with Data Layer Variables for
+their parameters. In GA4, marking `sign_up` as a key event makes it a conversion, and registering `reason`,
+`fields`, `cta_location` and `method` as custom dimensions makes them reportable. The UTMs aren't registered
+as custom dimensions: GA4's standard campaign attribution reads them from `page_location`. No GTM container
+or GA4 property is connected to this demo, so delivery and reporting are **not verified**.
 
 ## Events
 
@@ -81,7 +84,7 @@ aren't duplicated. Experiment variant would be added here once the A/B test runs
 
 ## Architecture
 
-`track()` → `window.dataLayer` → GTM (only if `PUBLIC_GTM_ID`) → GA4 Event tag configured in GTM.
+`track()` → `window.dataLayer` → GTM (only if `PUBLIC_GTM_ID`; needs a Google tag and GA4 Event tags) → GA4.
 
 - GTM and GA4 because that's what FX Replay's marketing stack uses (per the job description), and it lets
   marketing change tags without deploys.

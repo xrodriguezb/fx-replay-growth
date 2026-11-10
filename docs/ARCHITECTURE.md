@@ -10,7 +10,7 @@ flowchart LR
   A[Admin / ops] -->|GET, PATCH + bearer token| FN
   FN -->|HTTPS, Lua script| R[(Upstash Redis)]
   V -.->|track → window.dataLayer| DL[dataLayer]
-  DL -.->|only if PUBLIC_GTM_ID| GTM[GTM → GA4]
+  DL -.->|only if PUBLIC_GTM_ID| GTM["GTM: Google tag + GA4 Event tags → GA4"]
 ```
 
 ## Structure
