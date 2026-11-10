@@ -3,15 +3,18 @@
 **Status:** the app pushes typed events to `window.dataLayer`, verified in the page with Playwright. Nothing
 forwards them automatically. In GTM (loaded via `PUBLIC_GTM_ID`) that takes a Google tag with the GA4
 Measurement ID, which sends `page_view` (carrying `page_location`); plus Custom Event triggers and GA4 Event
-tags for the six events, with Data Layer Variables for their parameters. In GA4, marking `sign_up` as a key event makes it a conversion, and registering `reason`,
-`fields`, `cta_location` and `method` as custom dimensions makes them reportable. The UTMs aren't registered
-as custom dimensions: GA4's standard campaign attribution reads them from `page_location`. No GTM container
-or GA4 property is connected to this demo, so delivery and reporting are **not verified**.
+tags for the six events, with Data Layer Variables for `reason`, `fields`, `cta_location` and `method`. In
+GA4, marking `sign_up` as a key event makes it a conversion, and registering those four parameters as custom
+dimensions makes them reportable. The UTMs aren't registered as custom dimensions: GA4's standard campaign
+attribution reads them from `page_location`. No GTM container or GA4 property is connected to this demo, so
+delivery and reporting are **not verified**.
 
-**User-ID stays unset in this demo.** Google reserves it for signed-in users, and the `user_id` here is a
-signup record id that only exists after `sign_up`. It's kept in the data layer for reconciliation with the
-store, not mapped as a GA4 event parameter or custom dimension. With real FX Replay accounts, the account id
-would go in the Google tag's `user_id` setting on sign-in, pushed to the data layer before the GTM snippet
+**User-ID stays unset in this demo.** Google reserves it for signed-in users, and there are no accounts or
+sessions here. The `sign_up` event carries `signup_id` instead: the signup record's id, named so it can't
+collide with GA4's reserved `user_id`. It isn't registered as a custom dimension. Once GA4 is integrated, it
+could reconcile GA4 and the store by id through the BigQuery export, where event parameters arrive without
+registration. With real FX Replay accounts, the account id would go in the Google tag's `user_id` setting on
+sign-in, pushed to the data layer before the GTM snippet
 ([Google's User-ID guide](https://developers.google.com/analytics/devguides/collection/ga4/user-id)).
 
 ## Events
@@ -25,7 +28,7 @@ or an extra field doesn't compile.
 | `signup_started` | First focus on an input, or the first submit if no input was focused (autofill, Safari button clicks), once per page view | context |
 | `signup_submitted` | Client validation passed, request about to go out | context |
 | `signup_failed` | Any failure the user sees | `reason`: `validation` / `email_taken` / `server` / `network` / `timeout`; `fields`: comma-separated **field names**, never values |
-| `sign_up` | API answered **201** to a submit whose honeypot was empty, so the signup record exists | `method: "email"`, `user_id` (our opaque UUID) |
+| `sign_up` | API answered **201** to a submit whose honeypot was empty, so the signup record exists | `method: "email"`, `signup_id` (the record's opaque UUID) |
 | `cta_clicked` | Closing CTA clicked | `cta_location: "final_cta"` |
 
 **Context on every event:** `utm_source`, `utm_medium`, `utm_campaign`, `utm_content`, `utm_term` from the
@@ -78,8 +81,8 @@ aren't duplicated. Experiment variant would be added here once the A/B test runs
   users created that day: a gap beyond a set threshold means tracking loss (ad blockers, consent, script
   errors) or bot noise, and triggers a look. Expect GA4 to under-count; the gap should be stable, not zero.
   One known source: a request that times out on the client but succeeds on the server shows up as
-  `signup_failed: timeout`, then `email_taken` on retry, with no `sign_up`. The server-side event below
-  closes that gap.
+  `signup_failed: timeout`, then `email_taken` on retry, with no `sign_up`. Moving the conversion
+  server-side (below) closes that gap.
 - **Bots:** the honeypot keeps obvious bots out of the store. The server answers a filled honeypot with a
   fake 201 (so bots don't adapt), and the form, which knows its own honeypot was filled, does **not** fire
   `sign_up` for it. There's an e2e test for this. Honeypot hits show up only as a server log line, never as
@@ -98,5 +101,8 @@ aren't duplicated. Experiment variant would be added here once the A/B test runs
 
 **What I'd add for production**
 - Consent Mode v2 defaults before GTM loads.
-- A server-side `sign_up` via the GA4 Measurement Protocol from the API on 201, deduplicated against the
-  client event by `user_id`. Ad blockers can't drop that one.
+- **One conversion source at a time.** Today `sign_up` fires only in the browser. GA4 doesn't deduplicate
+  client and Measurement Protocol events, so moving it server-side (from the API on 201, so ad blockers can't
+  drop it) means switching sources, not adding one: the browser sends its GA4 `client_id` and session id with
+  the signup request so the server event joins the same user and session, and the client `sign_up` stops
+  firing in the same release.
