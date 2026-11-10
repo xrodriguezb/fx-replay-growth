@@ -83,19 +83,24 @@ export default function SignupForm() {
     track('signup_submitted');
     setState({ status: 'submitting' });
 
+    // The server answers a filled honeypot with a fake 201 and stores nothing, so the form must not count it.
+    // Same rule as the server (non-empty after trim), decided from what this form sent, not from the response.
+    const trap = String(form.get(TRAP_FIELD) ?? '');
+    const trapped = trap.trim() !== '';
+
     try {
       const res = await fetch('/api/users', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ ...parsed.data, [TRAP_FIELD]: form.get(TRAP_FIELD) ?? '' }),
+        body: JSON.stringify({ ...parsed.data, [TRAP_FIELD]: trap }),
         signal: AbortSignal.timeout(TIMEOUT_MS),
       });
       const body = await res.json().catch(() => null);
-      // a 201 means the account exists, whatever the body looks like; the id is only for analytics.
+      // a 201 on an untrapped submit means the record exists; the id is only for analytics.
       // This is the only place sign_up fires, and the submitting guard above stops a second request.
       if (res.status === 201) {
         const id = body?.user?.id;
-        track('sign_up', typeof id === 'string' ? { method: 'email', user_id: id } : { method: 'email' });
+        if (!trapped) track('sign_up', typeof id === 'string' ? { method: 'email', user_id: id } : { method: 'email' });
         return setState({ status: 'success', user: parsed.data });
       }
       if ((res.status === 400 || res.status === 409) && body?.error?.fields) {

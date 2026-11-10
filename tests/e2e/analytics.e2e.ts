@@ -80,6 +80,17 @@ test('counts signup_started even when no field was ever focused', async ({ page 
   expect(await names(page)).toEqual(['landing_viewed', 'signup_started', 'signup_submitted', 'sign_up']);
 });
 
+test('a filled honeypot shows success but never counts as a signup', async ({ page }) => {
+  // the server answers trapped submits with a fake 201 and stores nothing (tests/users-api.test.ts)
+  await open(page);
+  await page.evaluate(() => {
+    (document.getElementById('signup-trap') as HTMLInputElement).value = 'http://spam.example';
+  });
+  await submit(page, email('bot'), 'Bot');
+  await expect(page.getByRole('heading', { name: "You're in, Bot." })).toBeVisible();
+  expect(await names(page)).toEqual(['landing_viewed', 'signup_started', 'signup_submitted']);
+});
+
 test('records clicks on the closing CTA', async ({ page }) => {
   await open(page);
   await page.getByRole('link', { name: 'Try FX Replay Free' }).click();

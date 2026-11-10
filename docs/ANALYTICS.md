@@ -15,7 +15,7 @@ or an extra field doesn't compile.
 | `signup_started` | First focus on an input, or the first submit if no input was focused (autofill, Safari button clicks), once per page view | context |
 | `signup_submitted` | Client validation passed, request about to go out | context |
 | `signup_failed` | Any failure the user sees | `reason`: `validation` / `email_taken` / `server` / `network` / `timeout`; `fields`: comma-separated **field names**, never values |
-| `sign_up` | API answered **201**, so the signup record exists | `method: "email"`, `user_id` (our opaque UUID) |
+| `sign_up` | API answered **201** to a submit whose honeypot was empty, so the signup record exists | `method: "email"`, `user_id` (our opaque UUID) |
 | `cta_clicked` | Closing CTA clicked | `cta_location: "final_cta"` |
 
 **Context on every event:** `utm_source`, `utm_medium`, `utm_campaign`, `utm_content`, `utm_term` from the
@@ -57,8 +57,12 @@ aren't duplicated. Experiment variant would be added here once the A/B test runs
   One known source: a request that times out on the client but succeeds on the server shows up as
   `signup_failed: timeout`, then `email_taken` on retry, with no `sign_up`. The server-side event below
   closes that gap.
-- **Bots:** the honeypot keeps obvious bots out of the store; GA4's known-bot filter plus an internal-traffic
-  filter keep them out of the denominator.
+- **Bots:** the honeypot keeps obvious bots out of the store. The server answers a filled honeypot with a
+  fake 201 (so bots don't adapt), and the form, which knows its own honeypot was filled, does **not** fire
+  `sign_up` for it. There's an e2e test for this. Honeypot hits show up only as a server log line, never as
+  conversions. A browser bot that fills the honeypot still sends `signup_submitted`, so it shows up as a
+  submit → `sign_up` drop-off (compare with the honeypot log count when that rate moves). GA4's known-bot
+  filter plus an internal-traffic filter keep bots out of the denominator.
 
 ## Architecture
 
