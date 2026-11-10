@@ -56,7 +56,9 @@ export default function SignupForm() {
 
   function settle(errors: FieldErrors, reason: FailReason, formError?: string) {
     const fields = Object.keys(errors).filter((k) => errors[k as keyof FieldErrors]);
-    track('signup_failed', fields.length ? { reason, fields: fields.join(',') } : { reason });
+    // always send the key: GTM's data model keeps values from earlier pushes, so leaving `fields` out would let
+    // a server or network failure inherit the field list of a previous validation failure
+    track('signup_failed', { reason, fields: fields.length ? fields.join(',') : undefined });
     focusNext.current = formError ? 'signup-form-error' : errors.email ? 'signup-email' : 'signup-name';
     setState({ status: 'idle', errors, formError });
   }

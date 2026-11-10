@@ -66,6 +66,8 @@ test('records why a signup failed, by field name only', async ({ page }) => {
     { event: 'signup_failed', reason: 'network' },
     { event: 'signup_failed', reason: 'server' },
   ]);
+  // every failure carries a `fields` key, even when there's nothing to list, so GTM can't reuse a stale one
+  expect(await page.evaluate(() => (window.dataLayer ?? []).filter((e) => e.event === 'signup_failed').map((e) => 'fields' in e))).toEqual([true, true, true, true]);
   expect(await names(page)).not.toContain('sign_up');
   expect(JSON.stringify(await events(page))).not.toMatch(/@/);
 });
