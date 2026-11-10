@@ -1,12 +1,17 @@
 # Performance review
 
-Measured on the live deployment (https://fx-replay-growth.vercel.app) with Lighthouse 12.8.2, headless Chrome,
-2026-11-09. These are lab numbers from one run per profile; field data (RUM) doesn't exist yet.
+Measured on the live production deployment (https://fx-replay-growth.vercel.app, deployment
+`dpl_GRUtugXf7jA9SonaEYNGiWENsoNW`, commit `55e2821`) with Lighthouse 12.8.2 in headless Chrome on
+2026-11-10, two runs per profile. Ranges show the spread between the two runs.
 
 | Profile | Performance | Accessibility | Best practices | SEO | FCP | LCP | TBT | CLS | Speed Index |
 |---|---|---|---|---|---|---|---|---|---|
-| Mobile (default throttling) | 100 | 100 | 100 | 60 | 1.3 s | 1.7 s | 0 ms | 0 | 1.8 s |
-| Desktop | 100 | 100 | 100 | 60 | 0.3 s | 0.3 s | 0 ms | 0 | 0.4 s |
+| Mobile (default throttling) | 100 | 100 | 100 | 60 | 0.8–1.1 s | 0.9–1.4 s | 0 ms | 0.017–0.051 | 0.9–1.1 s |
+| Desktop | 100 | 100 | 100 | 60 | 0.2–0.3 s | 0.3 s | 0 ms | 0 | 0.3 s |
+
+**These are lab measurements, not field data.** Lighthouse runs one page load on one machine with simulated
+throttling. There's no real-user data (no Speed Insights or CrUX): the demo is `noindex` and gets almost no
+traffic. INP only exists in field data; TBT is its closest lab proxy.
 
 Total transfer is 162 KiB. The LCP element is the `<h1>`, which is text, not an image. SEO 60 comes from one
 audit: `is-crawlable`, because the demo is deliberately `noindex` (see SEO below).
@@ -15,9 +20,15 @@ audit: `is-crawlable`, because the demo is deliberately `noindex` (see SEO below
 
 - **LCP:** the h1, rendered in the static HTML. Its font (Lato 900, latin subset) is preloaded, so LCP doesn't
   wait on CSS discovery.
-- **CLS: 0.** No images, the SVG has a fixed aspect ratio, and the form is server-rendered at full size before
-  hydration. One layout shift was found and fixed in testing: clearing a validation message on blur moved
-  the submit button under a tapping finger.
+- **CLS:** 0 on desktop, 0.017–0.051 on mobile, inside Google's "good" threshold (≤ 0.1).
+  - **What's already in place:** no images, the SVG has a fixed aspect ratio, and the form is server-rendered
+    at full size before hydration.
+  - **Where the mobile shift comes from:** Lighthouse attributes it to the signup panel (`.hero__form`) moving
+    when a web font loads. Only Lato 900 is preloaded; the late swap of Nunito Sans is the likely trigger.
+  - **Possible next step:** preloading the Nunito Sans latin file, or a size-adjusted fallback font, would
+    likely reduce or remove the shift. It isn't implemented or measured.
+  - **Found and fixed earlier:** clearing a validation message on blur moved the submit button under a
+    tapping finger.
 - **INP:** TBT is 0 ms in the lab. The only JS is the form island, and its handlers do little work. Real INP
   needs field data (below).
 
