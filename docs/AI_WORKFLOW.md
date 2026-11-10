@@ -76,6 +76,9 @@ Rules that make the loop trustworthy:
 
 ## Who runs what
 
+This is the committed setup. In the build session the reviews ran through a generic agent type that also had
+Bash (see the notes above), so the split was enforced by instructions there, not by tools.
+
 - **Primary Claude Code session:** implements, runs every command (`check.sh`, Vitest, the Playwright test
   runner, Playwright CLI screenshots, Lighthouse, deploys when approved) and is the only agent that touches
   a browser.
