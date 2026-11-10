@@ -75,7 +75,9 @@ catches large harm. Proving no harm smaller than 1 pp would need a much bigger t
 - **Readout 1:** enrollment closes at the planned end date (planned sample reached, at least two full
   weeks). Only users assigned before that cutoff are included, and only signups made before the cutoff
   count, for both the primary metric and the replay guardrail. The readout runs 7 days after the cutoff,
-  so every included signup has a full 7-day observation window.
+  so every included signup has a full 7-day observation window. If traffic is too low to reach the planned
+  sample by the planned end date, enrollment continues until it does, up to a maximum date fixed in the
+  preregistration. If that date passes first, the test is reported as underpowered and the control stays.
 - **Readout 2 (only if rule 4 fires at readout 1):** enrollment reopens until one pre-set extension date.
   The same rules apply: the cutoff is the extension date, and the readout runs 7 days after it.
 
