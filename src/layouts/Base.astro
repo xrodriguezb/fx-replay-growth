@@ -1,0 +1,79 @@
+---
+import '../styles/global.css';
+import latoBlack from '@fontsource/lato/files/lato-latin-900-normal.woff2?url';
+
+type Props = { title: string; description: string };
+const { title, description } = Astro.props;
+
+// the demo deploy stays out of search results so it can't be mistaken for fxreplay.com;
+// a real launch sets PUBLIC_INDEXABLE=true, and SITE_URL (astro.config) for canonical + og:url
+const indexable = import.meta.env.PUBLIC_INDEXABLE === 'true';
+// GTM (and through it GA4) loads only when a container id is configured. Without one, events stay in
+// window.dataLayer and nothing third-party runs. The format check keeps a bad env value out of the script.
+const gtmId = /^GTM-[A-Z0-9]+$/.test(import.meta.env.PUBLIC_GTM_ID ?? '') ? import.meta.env.PUBLIC_GTM_ID : undefined;
+const canonical = Astro.site ? new URL(Astro.url.pathname, Astro.site).href : undefined;
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    { '@type': 'Organization', '@id': 'https://www.fxreplay.com/#org', name: 'FX Replay', url: 'https://www.fxreplay.com' },
+    {
+      '@type': 'SoftwareApplication',
+      name: 'FX Replay',
+      applicationCategory: 'FinanceApplication',
+      operatingSystem: 'Web',
+      description,
+      publisher: { '@id': 'https://www.fxreplay.com/#org' },
+    },
+  ],
+};
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <meta name="robots" content={indexable ? 'index, follow' : 'noindex, nofollow'} />
+    {canonical && <link rel="canonical" href={canonical} />}
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <!-- the h1 is the LCP element, so its font shouldn't wait for the CSS to be parsed -->
+    <link rel="preload" href={latoBlack} as="font" type="font/woff2" crossorigin />
+    <!-- meta tags can't read CSS vars; this is --bg-primary (dark-900) -->
+    <meta name="theme-color" content="#030303" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    {canonical && <meta property="og:url" content={canonical} />}
+    <meta name="twitter:card" content="summary" />
+    <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
+    {
+      gtmId && (
+        <script is:inline define:vars={{ gtmId }}>
+          // GA4 sends the full URL as page_location, so email-looking query values (some email tools put
+          // the address in a UTM) are removed from the address bar before GTM reads it
+          (function () {
+            // collect first: deleting inside forEach skips the next entry
+            var url = new URL(location.href), bad = [];
+            url.searchParams.forEach(function (v, k) { if (/@|%40/i.test(v)) bad.push(k); });
+            bad.forEach(function (k) { url.searchParams.delete(k); });
+            if (bad.length) history.replaceState(history.state, '', url);
+          })();
+          (function (w, d, s, l, i) {
+            w[l] = w[l] || [];
+            w[l].push({ 'gtm.start': new Date().getTime(), event: 'gtm.js' });
+            var f = d.getElementsByTagName(s)[0], j = d.createElement(s);
+            j.async = true;
+            j.src = 'https://www.googletagmanager.com/gtm.js?id=' + i;
+            f.parentNode.insertBefore(j, f);
+          })(window, document, 'script', 'dataLayer', gtmId);
+        </script>
+      )
+    }
+  </head>
+  <body>
+    <slot />
+  </body>
+</html>

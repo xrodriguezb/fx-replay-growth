@@ -1,0 +1,165 @@
+@import '@fontsource/lato/latin-400.css';
+@import '@fontsource/lato/latin-900.css';
+@import '@fontsource-variable/nunito-sans/wght.css';
+@import './tokens.css';
+
+/* page-level aliases on top of the Brand Kit semantics, for roles the kit doesn't name */
+:root {
+  --font-display: 'Lato', 'Helvetica Neue', Arial, sans-serif;
+  --font-body: 'Nunito Sans Variable', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  /* blue-600 is 3.8:1 on the dark ground, fine for shapes and big type, too low for small text */
+  --text-accent: var(--blue-400);
+  --chart-up: var(--neutral-200);
+  --chart-down: var(--dark-400);
+  --chart-playhead: var(--border-brand);
+  --focus-ring: var(--blue-400);
+  /* kit's border tokens are under 3:1 on the dark ground; inputs need a visible edge (WCAG 1.4.11) */
+  --border-input: var(--neutral-500);
+  --border-input-hover: var(--neutral-400);
+  --wrap: 72rem;
+  --gutter: clamp(1rem, 4vw, 2.5rem);
+  color-scheme: dark;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after { transition: none !important; }
+}
+
+body {
+  margin: 0;
+  background: var(--bg-primary);
+  color: var(--text-secondary);
+  font-family: var(--font-body);
+  font-size: 1.0625rem;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+h1, h2, h3 {
+  font-family: var(--font-display);
+  font-weight: 900;
+  color: var(--text-primary);
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+  text-wrap: balance;
+  margin: 0;
+}
+
+p { margin: 0; text-wrap: pretty; }
+
+a { color: var(--text-accent); text-underline-offset: 0.2em; }
+
+::selection { background: var(--brand-electric-blue); color: var(--btn-text); }
+
+:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+.wrap {
+  width: 100%;
+  max-width: var(--wrap);
+  margin-inline: auto;
+  padding-inline: var(--gutter);
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* buttons, shared by the form and the closing CTA */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 3.25rem;
+  padding: 0 1.5rem;
+  border: 0;
+  border-radius: 0.5rem;
+  background: var(--btn-bg-primary-active);
+  color: var(--btn-text);
+  font: 800 1rem/1 var(--font-body);
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color 150ms ease-out, transform 150ms ease-out;
+}
+.btn:hover { background: var(--btn-bg-primary-hover); }
+.btn:active { background: var(--btn-bg-primary-pressed); transform: translateY(1px); }
+.btn:disabled {
+  background: var(--btn-bg-primary-disabled);
+  color: var(--btn-text-disabled);
+  cursor: progress;
+}
+.btn[aria-disabled='true'] { cursor: progress; background: var(--btn-bg-primary-hover); }
+
+/* signup island (styled here because the React component ships no CSS of its own) */
+.signup {
+  display: grid;
+  gap: 1rem;
+  padding: clamp(1.25rem, 3vw, 2rem);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-secondary);
+  border-radius: 0.75rem;
+}
+
+.signup__title { font-size: clamp(1.5rem, 1.2rem + 1vw, 1.875rem); }
+.signup__title:focus { outline: none; }
+.signup__lead { color: var(--text-secondary); }
+
+.signup__field { display: grid; gap: 0.375rem; }
+.signup__field label { font-weight: 700; color: var(--text-primary); font-size: 0.9375rem; }
+.signup__field input {
+  min-height: 3rem;
+  padding: 0 0.875rem;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-input);
+  border-radius: 0.5rem;
+  font: inherit;
+  caret-color: var(--text-accent);
+  transition: border-color 150ms ease-out;
+}
+.signup__field input:hover { border-color: var(--border-input-hover); }
+.signup__field input:focus-visible { outline-offset: 0; border-color: var(--border-brand); }
+.signup__field input[aria-invalid='true'] { border-color: var(--error); }
+.signup__field input:read-only { color: var(--text-secondary); }
+
+.signup__error,
+.signup__form-error {
+  color: var(--text-error);
+  font-size: 0.9375rem;
+}
+.signup__form-error:empty { display: none; }
+.signup__form-error:focus { outline: none; }
+
+.signup__submit { width: 100%; margin-top: 0.25rem; }
+
+.signup__trap {
+  position: absolute;
+  left: -10000px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+
+.signup--done { gap: 0.75rem; border-color: var(--border-brand); }
+.signup--done strong { color: var(--text-primary); }

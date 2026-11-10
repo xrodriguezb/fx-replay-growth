@@ -1,0 +1,200 @@
+---
+// The same made-up chart drawn twice: whole (hindsight) and cut at the playhead (replay).
+// Everything is computed here at build time, so the page ships plain SVG and zero JS for it.
+
+const closes = [
+  101, 103, 102, 104, 103, 105, 104, 102, 103, 101, 102, 104, 103, 101, 100, 99, 101, 102,
+  106, 109, 108, 112, 115, 114, 118, 121, 119, 124, 127, 126,
+];
+const PLAYHEAD = 18; // replay shows candles before this index
+const W = 600;
+const H = 240;
+const PAD = 16;
+const STEP = W / closes.length;
+const BODY = STEP * 0.56;
+
+const candles = closes.map((close, i) => {
+  const open = i === 0 ? 100 : closes[i - 1];
+  const wick = [1.4, 0.9, 1.8, 1.1, 0.7][i % 5];
+  return { i, open, close, high: Math.max(open, close) + wick, low: Math.min(open, close) - wick };
+});
+
+const max = Math.max(...candles.map((c) => c.high));
+const min = Math.min(...candles.map((c) => c.low));
+const y = (p: number) => PAD + ((max - p) / (max - min)) * (H - PAD * 2);
+const cx = (i: number) => i * STEP + STEP / 2;
+const gridLines = [0.2, 0.4, 0.6, 0.8].map((t) => PAD + t * (H - PAD * 2));
+const playheadX = PLAYHEAD * STEP;
+
+const panels = [
+  {
+    id: 'hindsight',
+    title: 'Hindsight',
+    caption: 'You can see the whole move, so the trade looks obvious.',
+    label: 'Illustrative candlestick chart showing a full price history, including a breakout after a sideways range.',
+    visible: candles,
+    replay: false,
+  },
+  {
+    id: 'replay',
+    title: 'Replay',
+    caption: 'The future stays hidden. You make the call, then step forward and find out.',
+    label: 'The same illustrative chart cut off at a playhead just before the breakout. Everything to the right is hidden.',
+    visible: candles.slice(0, PLAYHEAD),
+    replay: true,
+  },
+];
+---
+
+<div class="diptych">
+  {
+    panels.map((panel) => (
+      <figure class:list={['panel', `panel--${panel.id}`]}>
+        <figcaption>
+          <span class="panel__title">{panel.title}</span>
+          <span class="panel__caption">{panel.caption}</span>
+        </figcaption>
+        <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={panel.label}>
+          {panel.replay && (
+            <defs>
+              <pattern id="hidden-hatch" width="10" height="10" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+                <line x1="0" y1="0" x2="0" y2="10" class="hatch" />
+              </pattern>
+            </defs>
+          )}
+          {gridLines.map((gy) => (
+            <line x1="0" x2={W} y1={gy} y2={gy} class="grid" />
+          ))}
+          {panel.visible.map((c) => {
+            const up = c.close >= c.open;
+            const top = y(Math.max(c.open, c.close));
+            return (
+              <g class={up ? 'up' : 'down'}>
+                <line x1={cx(c.i)} x2={cx(c.i)} y1={y(c.high)} y2={y(c.low)} class="wick" />
+                <rect x={cx(c.i) - BODY / 2} y={top} width={BODY} height={Math.max(2, y(Math.min(c.open, c.close)) - top)} rx="1" />
+              </g>
+            );
+          })}
+          {!panel.replay && <line x1={playheadX} x2={playheadX} y1="0" y2={H} class="playhead-ghost" />}
+          {panel.replay && (
+            <g>
+              <rect x={playheadX} y="0" width={W - playheadX} height={H} fill="url(#hidden-hatch)" class="hidden-zone" />
+              <text x={(playheadX + W) / 2} y={H / 2} class="hidden-label" text-anchor="middle">
+                Hidden
+              </text>
+              <line x1={playheadX} x2={playheadX} y1="0" y2={H} class="playhead" />
+              <path d={`M${playheadX - 9} 0 h18 l-9 12 z`} class="playhead-head" />
+            </g>
+          )}
+        </svg>
+      </figure>
+    ))
+  }
+</div>
+<p class="diptych__note">Illustration with made-up prices, not real market data or a product screenshot.</p>
+
+<style>
+  .diptych {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr));
+    gap: 1px;
+    background: var(--border-primary);
+    border: 1px solid var(--border-primary);
+    border-radius: 0.75rem;
+    overflow: hidden;
+  }
+
+  .panel {
+    margin: 0;
+    background: var(--bg-secondary);
+    padding: clamp(1rem, 2.5vw, 1.5rem);
+    display: grid;
+    gap: 1rem;
+  }
+
+  figcaption {
+    display: grid;
+    gap: 0.25rem;
+  }
+
+  .panel__title {
+    font-family: var(--font-display);
+    font-weight: 900;
+    font-size: 1.125rem;
+    letter-spacing: -0.01em;
+    color: var(--text-primary);
+  }
+
+  .panel--replay .panel__title {
+    color: var(--text-accent);
+  }
+
+  .panel__caption {
+    color: var(--text-secondary);
+    max-width: 36ch;
+  }
+
+  svg {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 5 / 2;
+    display: block;
+  }
+
+  .grid {
+    stroke: var(--border-primary);
+    stroke-width: 1;
+    vector-effect: non-scaling-stroke;
+  }
+
+  .wick {
+    stroke-width: 1.5;
+    vector-effect: non-scaling-stroke;
+  }
+
+  .up rect { fill: var(--chart-up); }
+  .up .wick { stroke: var(--chart-up); }
+  .down rect { fill: var(--chart-down); }
+  .down .wick { stroke: var(--chart-down); }
+
+  .hatch {
+    stroke: var(--border-secondary);
+    stroke-width: 2;
+  }
+
+  .hidden-zone {
+    opacity: 0.9;
+  }
+
+  .hidden-label {
+    fill: var(--text-disabled);
+    font-family: var(--font-body);
+    font-size: 28px;
+    letter-spacing: 0.02em;
+    font-weight: 700;
+  }
+
+  .playhead {
+    stroke: var(--chart-playhead);
+    stroke-width: 2;
+    vector-effect: non-scaling-stroke;
+  }
+
+  /* where the replay panel's playhead sits, so the two panels line up at a glance */
+  .playhead-ghost {
+    stroke: var(--border-tertiary);
+    stroke-width: 1.5;
+    stroke-dasharray: 4 5;
+    vector-effect: non-scaling-stroke;
+  }
+
+  .playhead-head {
+    fill: var(--chart-playhead);
+  }
+
+  .diptych__note {
+    margin: 0.75rem 0 0;
+    font-size: 0.8125rem;
+    color: var(--text-disabled);
+  }
+</style>
