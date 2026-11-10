@@ -61,6 +61,14 @@ describe('POST /api/users', () => {
     expect((await post({ email: 'a@b.co', name: 'x'.repeat(5000) })).status).toBe(413);
   });
 
+  it('answers inside the error envelope when the body stream fails', async () => {
+    const body = new ReadableStream({ start: (c) => c.error(new Error('client went away')) });
+    const request = new Request(BASE, { method: 'POST', body, duplex: 'half' } as RequestInit);
+    const res = await POST(ctx(request));
+    expect(res.status).toBe(400);
+    expect((await res.json()).error.code).toBe('UNREADABLE_BODY');
+  });
+
   it('returns 409 for a duplicate email regardless of case', async () => {
     await post({ email: 'dup@example.com', name: 'One' });
     const res = await post({ email: 'DUP@example.com', name: 'Two' });
