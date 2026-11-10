@@ -23,7 +23,7 @@ async function submit(page: Page, emailValue: string, name: string) {
 }
 
 test('records the funnel in order, once, with attribution and no PII', async ({ page }) => {
-  await open(page, '?utm_source=newsletter&utm_campaign=launch&utm_medium=someone%40example.com&utm_term=x%2540y.com');
+  await open(page, '?utm_source=newsletter&utm_campaign=launch&utm_medium=someone%40example.com&utm_term=x%2540y.com&utm_content=Ana%20Lopez');
   await submit(page, email('funnel'), 'Ana');
   await expect(page.getByRole('heading', { name: "You're in, Ana." })).toBeVisible();
 
@@ -36,6 +36,7 @@ test('records the funnel in order, once, with attribution and no PII', async ({ 
   // the UTM carrying an email is dropped, and nothing anywhere looks like an email
   expect(signUp).not.toHaveProperty('utm_medium');
   expect(signUp).not.toHaveProperty('utm_term');
+  expect(signUp).not.toHaveProperty('utm_content'); // a name with a space isn't a campaign slug
   expect(JSON.stringify(all)).not.toMatch(/@/);
 });
 

@@ -52,12 +52,17 @@ const jsonLd = {
     {
       gtmId && (
         <script is:inline define:vars={{ gtmId }}>
-          // GA4 sends the full URL as page_location, so email-looking query values (some email tools put
-          // the address in a UTM) are removed from the address bar before GTM reads it
+          // GA4 sends the full URL as page_location, so before GTM reads it we drop: known contact/identity
+          // params, any value containing an @ (or %40), and utm_* values that aren't campaign slugs.
+          // Same slug rule as analytics.ts. It's a filter for known shapes, not general PII detection.
           (function () {
+            var contact = /^(email|e-?mail|phone|tel|mobile|name|first_?name|last_?name|full_?name)$/i;
+            var slug = /^[a-z0-9._-]{1,100}$/i;
             // collect first: deleting inside forEach skips the next entry
             var url = new URL(location.href), bad = [];
-            url.searchParams.forEach(function (v, k) { if (/@|%40/i.test(v)) bad.push(k); });
+            url.searchParams.forEach(function (v, k) {
+              if (contact.test(k) || /@|%40/i.test(v) || (/^utm_/i.test(k) && !slug.test(v))) bad.push(k);
+            });
             bad.forEach(function (k) { url.searchParams.delete(k); });
             if (bad.length) history.replaceState(history.state, '', url);
           })();

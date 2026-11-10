@@ -11,7 +11,8 @@ test('strips email-looking params before GTM loads, keeps the safe ones', async 
   });
 
   await page.goto(
-    '/?utm_source=newsletter&utm_medium=a%40b.com&utm_term=x%2540y.com&utm_campaign=launch&email=c@d.io&utm_content=hero',
+    '/?utm_source=newsletter&utm_medium=a%40b.com&utm_term=Ana%20Lopez&utm_campaign=launch&email=c@d.io' +
+      '&phone=5551234567&first_name=Ana&utm_content=hero&ref=x%2540y.com',
   );
   await expect.poll(() => urlWhenGtmRequested).not.toBe('');
 

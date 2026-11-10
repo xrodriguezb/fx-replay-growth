@@ -19,7 +19,9 @@ or an extra field doesn't compile.
 | `cta_clicked` | Closing CTA clicked | `cta_location: "final_cta"` |
 
 **Context on every event:** `utm_source`, `utm_medium`, `utm_campaign`, `utm_content`, `utm_term` from the
-landing URL, read once per page load. Session, client id, device, geo and referrer come from GA4 itself and
+landing URL, read once per page load. Only values that look like campaign slugs (letters, digits, `.`,
+`_`, `-`, up to 100 characters) are kept. That's the convention campaign links should follow anyway, and
+it drops spaces, `@` and free text. Session, client id, device, geo and referrer come from GA4 itself and
 aren't duplicated. Experiment variant would be added here once the A/B test runs (see EXPERIMENT.md).
 
 ## Funnel
@@ -38,12 +40,23 @@ aren't duplicated. Experiment variant would be added here once the A/B test runs
 ## Data quality
 
 - **Typed at the source:** names and properties are checked at compile time.
-- **No PII:** emails and names never go in an event. A UTM value containing `@` (or a double-encoded
-  `%40`) is dropped from the event context. As a last line of defence, `track()` refuses any payload that
-  looks like it contains an email. GA4 also sends the full URL as `page_location`, so when GTM is enabled an
-  inline script first removes email-looking query values from the address bar before GTM loads. The
-  `gtm` e2e project tests this on a production build with a fake container id. The e2e suite asserts there's no `@` anywhere in the data layer across
-  the success and failure flows.
+- **Privacy: what's guaranteed, and what isn't.**
+  - **Guaranteed by construction:** form values (email, name) never go in an event. Events only carry
+    enum codes, field names, our UUID and filtered UTMs.
+  - **Filtered by format:**
+    - UTM values that aren't campaign slugs are dropped (an email, `Ana%20Lopez`).
+    - `track()` refuses any payload that still looks like it contains an email.
+    - GA4 sends the full URL as `page_location`, so when GTM is enabled an inline script first removes
+      these from the address bar before GTM loads: known contact parameters (`email`, `phone`, `tel`,
+      `mobile`, `name`, `first_name`, `last_name`, `full_name`), any value containing `@`/`%40`, and non-slug
+      UTM values.
+  - **Not guaranteed:** this is a filter for known shapes, not PII detection. A name written as a slug
+    (`utm_term=ana-lopez`) or personal data under an unlisted parameter name would still pass. The real
+    control is a campaign-naming convention for marketing links, plus GA4's own data-redaction settings
+    once a property exists.
+  - **Tests:** e2e asserts no `@` in the data layer across the success and failure flows and drops a
+    non-slug UTM. The `gtm` project checks the URL scrub on a production build with a fake container id,
+    using emails (plain and double-encoded), a phone, a first name and a spaced name.
 - **The conversion is server-confirmed:** `sign_up` fires on the API's 201, not on the button click.
   Validation errors, 409s and network failures can't count as conversions.
 - **Counted once:** `sign_up` has exactly one call site, the 201 branch, and a request can't be sent twice
