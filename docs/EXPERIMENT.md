@@ -28,35 +28,76 @@ Implementation cost is small but not zero, which is part of why it's a good firs
 **Primary:** signup conversion rate, `sign_up` ÷ `landing_viewed`, unique users, per variant (as defined in
 [ANALYTICS.md](ANALYTICS.md)).
 
-**Guardrails.** The test fails if any of these get worse, even with a conversion lift:
+**Guardrails.** A breach rejects the variant, even with a conversion lift. The tolerances are fixed before launch (see Decision):
 
 - **Downstream quality:** share of new accounts that start a first replay within 7 days. If email-only
   brings in lower-intent signups, this falls. It needs product data joined by `user_id`.
 - **Speed:** LCP p75 per variant. The testing tool must not slow down either arm (see Delivery).
-- **API health:** 4xx/5xx rate on `POST /api/users`.
-- **Bot share:** honeypot hits per 1,000 signups. A shorter form is easier for bots too.
+- **API health:** 5xx rate on `POST /api/users` (4xx moves with the variant itself, since it changes validation).
+- **Bot share:** honeypot hits per 1,000 submits. A shorter form is easier for bots too.
 
 ## Sizing and duration
 
 FX Replay's real baseline isn't public, so here's the method with an assumed number:
 
-- Baseline 10%, minimum detectable effect +10% relative (10% → 11%), α = 0.05 two-sided, power 0.8.
-- That needs **about 14,700 users per arm**: n ≈ (1.96 + 0.84)² × (p₁(1−p₁) + p₂(1−p₂)) / (p₂ − p₁)².
+- Baseline 10%, minimum detectable effect +10% relative (10% → 11%), power 0.8.
+- α = 0.05 two-sided, split across the two prespecified readouts (Bonferroni, so each uses α = 0.025 and
+  97.5% intervals). An unadjusted second look can inflate the false-positive rate; the split keeps the
+  overall rate at or below 5%.
+- That needs **about 17,900 users per arm**: n ≈ (2.24 + 0.84)² × (p₁(1−p₁) + p₂(1−p₂)) / (p₂ − p₁)².
 - Run **at least two full weeks** regardless of traffic, so weekday and weekend audiences are both in, and
   fix the end date up front. No stopping early because it looks good on day three.
 
 ## Decision
 
-At the planned end date:
+**Fixed before launch, in the pre-registration:**
 
-- **Ship the variant** if the primary metric lifts with the 95% interval above zero, no guardrail
-  regresses beyond its threshold, and the sample-ratio check passes.
-- **Continue** if the planned sample isn't reached, or the interval still includes both zero and the MDE.
-  Extend once to a new fixed date; don't peek in a loop.
-- **Reject the variant** if the interval's upper bound is below the MDE (a real win, if any, is too small to
-  matter), or any guardrail regresses, even if conversion went up.
-- **Invalidate and rerun** on a sample-ratio mismatch (χ² p < 0.001 on the 50/50 split). It means
-  assignment or tracking is broken, and the result can't be trusted in either direction.
+- **δ (the MDE):** +1 percentage point absolute (10% → 11%). It's both the sizing input above and the
+  smallest lift worth shipping, since dropping the name has a cost (less personalisation, one more
+  onboarding step).
+- **Guardrail tolerances.** These are proposed values; the team confirms them before launch, and they don't
+  move afterwards.
+
+| Guardrail | Breach if |
+|---|---|
+| 7-day first-replay rate | variant is significantly worse: the upper bound of (variant − control) is below 0 |
+| LCP p75 | variant − control exceeds +100 ms |
+| `POST /api/users` 5xx rate | variant − control exceeds +0.5 pp (an outage hitting both arms is an incident, rule 1) |
+| Honeypot hits per 1,000 submits | variant is more than 1.5× control |
+
+The replay guardrail is deliberately "significant harm", not a tight non-inferiority margin. With about
+1,800 signups per arm and a replay rate near 50%, the 97.5% interval on the difference is about ±3.8 pp, so
+a "lower bound above −1 pp" rule would reject a variant with no effect most of the time. This sample only
+catches large harm. Proving no harm smaller than 1 pp would need a much bigger test.
+
+**Analysis points and eligibility (both prespecified):**
+
+- **Readout 1:** enrollment closes at the planned end date (planned sample reached, at least two full
+  weeks). Only users assigned before that cutoff are included, and only signups made before the cutoff
+  count, for both the primary metric and the replay guardrail. The readout runs 7 days after the cutoff,
+  so every included signup has a full 7-day observation window.
+- **Readout 2 (only if rule 4 fires at readout 1):** enrollment reopens until one pre-set extension date.
+  The same rules apply: the cutoff is the extension date, and the readout runs 7 days after it.
+
+At each readout, Δ = variant − control in conversion rate, Δ̂ is its point estimate, and [L, U] is its
+97.5% interval. The rules below are checked in order and **the first one that matches is the decision**,
+so exactly one applies:
+
+1. **Invalid, rerun:** the sample-ratio check fails (χ² p < 0.001 on the 50/50 split) or there was a
+   tracking incident. The data can't support any decision.
+2. **Reject:** any guardrail is breached, **or** U < δ. Either the variant harms something we protect, or
+   the interval rules out a lift worth shipping. That includes a statistically significant but small lift
+   (e.g. [+0.2, +0.8] pp): real, but not worth the cost.
+3. **Ship:** L > 0 **and** Δ̂ ≥ δ. The lift is statistically significant (above zero) and the estimated
+   lift reaches the minimum worthwhile uplift of +1 pp.
+4. **Continue:** anything else. That means U ≥ δ, but either L ≤ 0 (zero still plausible) or Δ̂ < δ (a
+   real lift whose estimate is below +1 pp). At readout 1, extend **once** (readout 2). At readout 2,
+   apply rules 1–3, and if none matches, **reject** (default to the control).
+
+Every interval lands in exactly one case: rule 2 takes all U < δ, rule 3 takes significant lifts estimated
+at δ or more, and rule 4 takes the rest. Statistical significance is "L > 0"; practical significance is
+"Δ̂ ≥ δ" for shipping and "U < δ" for rejecting. Only the two readouts above count; peeking in between
+doesn't trigger any rule.
 
 ## Delivery: Convert, flicker and CLS
 
