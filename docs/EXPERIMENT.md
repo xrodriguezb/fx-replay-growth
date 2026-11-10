@@ -31,9 +31,9 @@ Implementation cost is small but not zero, which is part of why it's a good firs
 **Guardrails.** A breach rejects the variant, even with a conversion lift. The tolerances are fixed before launch (see Decision):
 
 - **Downstream quality:** share of new accounts that start a first replay within 7 days. If email-only
-  brings in lower-intent signups, this falls. It needs product data joined to the variant through the
-  signup record: the `signup_id` on `sign_up` matched to the store record (via the BigQuery export, once GA4
-  is integrated).
+  brings in lower-intent signups, this falls. The assigned variant is stored on the signup record when the
+  API creates it (read from the assignment cookie), so first-replay data joins on the store record without
+  depending on GA4, ad blockers or consent.
 - **Speed:** LCP p75 per variant. The testing tool must not slow down either arm (see Delivery).
 - **API health:** 5xx rate on `POST /api/users` (4xx moves with the variant itself, since it changes validation).
 - **Bot share:** honeypot hits per 1,000 submits. A shorter form is easier for bots too.
