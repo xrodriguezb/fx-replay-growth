@@ -11,7 +11,9 @@ Measured on the live production deployment (https://fx-replay-growth.vercel.app,
 
 **These are lab measurements, not field data.** Lighthouse runs one page load on one machine with simulated
 throttling. There's no real-user data (no Speed Insights or CrUX): the demo is `noindex` and gets almost no
-traffic. INP only exists in field data; TBT is its closest lab proxy.
+traffic. INP isn't measured: the Lighthouse load audit doesn't capture interaction latency, and no real-user
+INP was collected. TBT is a lab diagnostic of main-thread blocking during load, not an INP measurement or
+an equivalent.
 
 Total transfer is 162 KiB. The LCP element is the `<h1>`, which is text, not an image. SEO 60 comes from one
 audit: `is-crawlable`, because the demo is deliberately `noindex` (see SEO below).
@@ -29,8 +31,9 @@ audit: `is-crawlable`, because the demo is deliberately `noindex` (see SEO below
     likely reduce or remove the shift. It isn't implemented or measured.
   - **Found and fixed earlier:** clearing a validation message on blur moved the submit button under a
     tapping finger.
-- **INP:** TBT is 0 ms in the lab. The only JS is the form island, and its handlers do little work. Real INP
-  needs field data (below).
+- **INP:** not measured, either in the lab or in the field. TBT is 0 ms, which only shows the main thread
+  wasn't blocked during load. The only JS is the form island and its handlers do little work, which makes a
+  good INP likely but unproven. Measuring it needs field data (below).
 
 ## Performance decisions
 
