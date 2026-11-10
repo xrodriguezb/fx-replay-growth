@@ -62,7 +62,7 @@ The store has three functions behind one interface, because it really does have 
 | PATCH | `/api/users/:id` | admin bearer | 200 `{ user }` | 400 `VALIDATION` / `INVALID_JSON` / `UNREADABLE_BODY`, 401, 404 `NOT_FOUND`, 413, 503 |
 | GET | `/api/users?cursor=&limit=` | admin bearer | 200 `{ users, nextCursor }` | 400, 401, 503 |
 
-Every error is `{ error: { code, message, fields? } }`. `fields` maps a field name to the message the form shows.
+Every error the handlers return is `{ error: { code, message, fields? } }`. `fields` maps a field name to the message the form shows.
 
 - One zod schema (`src/lib/user-schema.ts`) validates both the form and the API.
 - Email is trimmed and lowercased before anything else. It's the identity key, so PATCH can only change `name`.
