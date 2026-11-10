@@ -88,6 +88,22 @@ See [.env.example](.env.example). In production:
 - **Set manually:** `ADMIN_TOKEN`.
 - **Optional:** `PUBLIC_GTM_ID`, `SITE_URL`, `PUBLIC_INDEXABLE`.
 
+## Analytics
+
+**Analytics dashboard scope:** The challenge requires an Analytics Plan covering event instrumentation, funnel
+definition, primary metrics, tooling, and data quality. It does not request a live analytics dashboard or
+access to FX Replay's analytics accounts. What's implemented:
+
+- **Typed events in the browser:** six events pushed to `window.dataLayer` (`landing_viewed` →
+  `signup_started` → `signup_submitted` → `sign_up`, plus `signup_failed` and `cta_clicked`), without
+  directly including submitted names or email addresses in event payloads, checked by the e2e suite.
+- **Funnel and measurement plan:** the primary metric, data-quality rules and reconciliation approach in
+  [docs/ANALYTICS.md](docs/ANALYTICS.md); the A/B test design in [docs/EXPERIMENT.md](docs/EXPERIMENT.md).
+- **GTM/GA4 approach:** GTM loads only when `PUBLIC_GTM_ID` is set. ANALYTICS.md lists what the container and
+  the GA4 property would need.
+
+No GTM container or GA4 property is connected, so there's no live conversion data or dashboard to show.
+
 ## Scope notes
 
 - **Done:** landing, one-step signup with full states, Users API with durable storage, typed analytics,
@@ -97,6 +113,6 @@ See [.env.example](.env.example). In production:
 - **Proposed only:** the A/B test, as the brief asks.
 - **Not done, with reasons in the docs:**
   - Real auth.
-  - GA4 delivery (no container connected).
+  - GA4 delivery and a live dashboard (see [Analytics](#analytics)).
   - Rate limiting.
   - A manual screen-reader pass.
